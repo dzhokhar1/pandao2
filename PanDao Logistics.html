@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PanDao Logistics — Доставка из Китая на Северный Кавказ</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--pd-bg);font-family:var(--pd-font);-webkit-font-smoothing:antialiased;}
+  #wrap{width:100%;overflow:hidden;}
+  #stage{width:1600px;margin:0 auto;transform-origin:top center;background:var(--pd-bg);position:relative;transform:scale(1);}
+  img{display:block;}
+  a{text-decoration:none;color:inherit;}
+
+  /* ============ shared bits ============ */
+  .ico{display:inline-flex;align-items:center;justify-content:center;}
+  .ico svg{stroke-width:1.75;}
+  .rdash{width:64px;height:4px;background:var(--pd-red);border-radius:2px;}
+  .eyebrow{font-weight:700;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--pd-red);display:inline-flex;align-items:center;gap:16px;white-space:nowrap;}
+  .eyebrow::before{content:"";width:38px;height:3px;background:var(--pd-red);border-radius:2px;}
+
+  /* spec chip (live, reused) */
+  .spec-chip{position:absolute;display:flex;align-items:center;gap:18px;background:#fff;border:1px solid var(--pd-line);border-radius:18px;padding:18px 28px 18px 22px;box-shadow:var(--pd-shadow-md);}
+  .spec-chip .sc-ic{width:46px;height:46px;color:var(--pd-red);}
+  .spec-chip .sc-ic svg{width:40px;height:40px;}
+  .spec-chip .sc-t1{font-size:18px;color:var(--pd-ink);font-weight:500;line-height:1.2;}
+  .spec-chip .sc-t2{font-size:18px;color:var(--pd-red);font-weight:800;line-height:1.35;letter-spacing:-.01em;}
+  .spec-chip .sc-t2 .ar{color:var(--pd-red);padding:0 4px;}
+
+  /* ===================================================================
+     HEADER
+     =================================================================== */
+  header.nav{height:110px;display:flex;align-items:center;justify-content:space-between;padding:0 56px;background:var(--pd-bg);position:relative;z-index:30;}
+  header.nav .logo{height:50px;}
+  header.nav .menu{display:flex;align-items:center;gap:50px;}
+  header.nav .menu a{font-size:17px;font-weight:600;color:var(--pd-ink);transition:color .15s;white-space:nowrap;}
+  header.nav .menu a:hover{color:var(--pd-red);}
+  .btn{display:inline-flex;align-items:center;gap:14px;font-family:var(--pd-font);font-weight:700;font-size:16px;border-radius:13px;padding:16px 28px;cursor:pointer;border:none;transition:all .18s cubic-bezier(.2,.7,.2,1);white-space:nowrap;}
+  .btn svg{width:19px;height:19px;}
+  .btn.primary{background:var(--pd-red);color:#fff;box-shadow:var(--pd-shadow-red);}
+  .btn.primary:hover{background:var(--pd-red-deep);transform:translateY(-2px);}
+  .btn.primary:active{transform:scale(.98);}
+  .btn.secondary{background:transparent;color:var(--pd-ink);border:1.5px solid var(--pd-ink);}
+  .btn.secondary:hover{background:var(--pd-ink);color:#fff;}
+  header.nav .btn.primary{padding:18px 32px;font-size:17px;}
+
+  /* ===================================================================
+     HERO
+     =================================================================== */
+  .hero{position:relative;min-height:662px;}
+  .hero .photo{position:absolute;top:0;right:0;width:882px;height:656px;overflow:hidden;}
+  .hero .photo>img{width:100%;height:100%;object-fit:cover;}
+  .hero .photo::before{content:"";position:absolute;inset:0 auto 0 0;width:60px;background:linear-gradient(90deg, var(--pd-bg) 0%, rgba(244,243,241,0) 100%);z-index:2;}
+
+  /* --- hero baked graphics rebuilt as live HTML/CSS/SVG --- */
+  .ph-svg{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;}
+  /* status chip */
+  .hchip{position:absolute;top:32px;left:28px;width:332px;background:#fff;border-radius:20px;box-shadow:0 24px 54px rgba(20,21,26,.20);padding:20px 22px 30px;display:flex;gap:16px;align-items:flex-start;z-index:5;}
+  .hchip .ic{width:58px;height:58px;border-radius:15px;background:var(--pd-red);display:flex;align-items:center;justify-content:center;flex:none;}
+  .hchip .ic svg{width:32px;height:32px;color:#fff;stroke-width:2;}
+  .hchip .t{font-size:17.5px;font-weight:800;color:var(--pd-ink);line-height:1.15;letter-spacing:-.01em;white-space:nowrap;}
+  .hchip .s{font-size:14.5px;color:var(--pd-muted);line-height:1.32;margin-top:5px;}
+  .hchip .bar{position:absolute;left:22px;bottom:15px;width:152px;height:7px;border-radius:4px;background:#ECEAE7;overflow:hidden;}
+  .hchip .bar span{display:block;height:100%;width:36%;background:var(--pd-red);border-radius:4px;}
+  /* city labels */
+  .hcities{position:absolute;top:44px;right:22px;display:flex;flex-direction:column;align-items:flex-end;gap:17px;z-index:4;}
+  .hcity{display:flex;align-items:center;gap:12px;color:#fff;font-size:15px;font-weight:800;letter-spacing:.05em;text-shadow:0 1px 8px rgba(0,0,0,.45);white-space:nowrap;}
+  .hcity i{width:9px;height:9px;border-radius:50%;background:var(--pd-red);box-shadow:0 0 0 4px rgba(222,41,49,.22);}
+  /* route tracker panel */
+  .hpanel{position:absolute;left:250px;bottom:16px;width:568px;background:rgba(15,16,20,.80);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:19px 26px 17px;color:#fff;z-index:5;}
+  .hpanel .h{font-size:23px;font-weight:800;letter-spacing:-.01em;line-height:1.1;}
+  .hpanel .h .r{color:var(--pd-red);}
+  .hpanel .h .ar{color:var(--pd-red);padding:0 7px;}
+  .hpanel .sub{font-size:14px;color:#C9CACE;margin-top:6px;}
+  .hpanel .track{position:relative;display:flex;margin-top:20px;padding:0 8px;}
+  .hpanel .track .line{position:absolute;left:12.5%;right:12.5%;top:19px;height:2px;background:rgba(255,255,255,.18);}
+  .hpanel .track .line .fill{position:absolute;left:0;top:0;height:100%;width:33.4%;background:var(--pd-red);}
+  .hpanel .track .mid{position:absolute;top:19px;transform:translate(-50%,-50%);width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);}
+  .hpanel .track .mid.r{background:var(--pd-red);}
+  .hpanel .step{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;}
+  .hpanel .step .d{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.13);display:flex;align-items:center;justify-content:center;}
+  .hpanel .step .d svg{width:21px;height:21px;color:#fff;stroke-width:2;}
+  .hpanel .step.active .d{background:var(--pd-red);}
+  .hpanel .step i{font-style:normal;font-size:12px;color:#C9CACE;margin-top:9px;text-align:center;line-height:1.2;white-space:nowrap;}
+  .hpanel .step.active i{color:#fff;}
+  .hero .left{position:relative;z-index:10;padding:74px 0 30px 135px;max-width:640px;}
+  .hero h1{font-family:var(--pd-display);font-weight:800;font-size:63px;line-height:1.02;letter-spacing:-.024em;color:var(--pd-ink);margin:22px 0 0;white-space:nowrap;}
+  .hero .rdash{margin:30px 0 28px;}
+  .hero .lead{font-size:19px;line-height:1.6;color:var(--pd-ink-2);max-width:540px;margin:0;}
+  .hero .lead b{color:var(--pd-ink);font-weight:700;}
+  .hero .lead2{font-size:19px;line-height:1.6;color:var(--pd-muted);max-width:540px;margin:22px 0 0;}
+  .hero .cta{display:flex;gap:18px;margin-top:40px;}
+  .hero .coords{position:absolute;left:20px;top:188px;font-size:13px;font-weight:500;line-height:1.55;color:var(--pd-faint);letter-spacing:.02em;}
+  .hero .coords::before{content:"";position:absolute;left:2px;top:-16px;width:7px;height:7px;border-radius:50%;background:var(--pd-red);}
+  .hero .cross{position:absolute;left:42px;top:548px;width:30px;height:30px;}
+  .hero .cross::before,.hero .cross::after{content:"";position:absolute;background:var(--pd-red);}
+  .hero .cross::before{left:50%;top:0;width:1.5px;height:100%;transform:translateX(-50%);}
+  .hero .cross::after{top:50%;left:0;height:1.5px;width:100%;transform:translateY(-50%);}
+
+  /* stat bar */
+  .statbar{height:128px;border-top:1px solid var(--pd-line);background:var(--pd-bg);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding:0 56px;position:relative;z-index:20;}
+  .stat-i{display:flex;align-items:center;gap:20px;padding-left:24px;}
+  .stat-i:first-child{padding-left:24px;}
+  .stat-i .si-ic{width:48px;height:48px;color:var(--pd-red);flex:none;}
+  .stat-i .si-ic svg{width:46px;height:46px;}
+  .stat-i .num{font-family:var(--pd-display);font-weight:800;font-size:26px;letter-spacing:-.02em;color:var(--pd-ink);line-height:1.05;white-space:nowrap;}
+  .stat-i .cap{font-size:15px;color:var(--pd-muted);margin-top:3px;line-height:1.3;}
+
+  /* ===================================================================
+     shared section frame (facts / services)
+     =================================================================== */
+  .sec{position:relative;padding:84px 96px 92px;overflow:hidden;}
+  /* motif rebuilt: clean faded photo + SVG map/route/pings + live spec chip */
+  .sec .motif{position:absolute;top:0;right:0;width:760px;height:430px;pointer-events:none;z-index:1;}
+  .sec .motif .mphoto{position:absolute;right:0;top:0;width:430px;height:430px;overflow:hidden;}
+  .sec .motif .mphoto img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(.85) brightness(1.18);opacity:.14;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 45%);mask-image:linear-gradient(90deg,transparent 0,#000 45%);}
+  .sec .motif .mmap{position:absolute;inset:0;width:100%;height:100%;}
+  .sec .motif .spec{position:absolute;top:62px;right:46px;display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--pd-line);border-radius:16px;padding:15px 24px 15px 18px;box-shadow:var(--pd-shadow-md);pointer-events:auto;}
+  .sec .motif .spec .si{width:42px;height:42px;color:var(--pd-red);flex:none;}
+  .sec .motif .spec .si svg{width:38px;height:38px;}
+  .sec .motif .spec .t1{font-size:17px;color:var(--pd-ink);font-weight:500;line-height:1.2;}
+  .sec .motif .spec .t2{font-size:17px;font-weight:800;line-height:1.4;letter-spacing:-.01em;color:var(--pd-red);white-space:nowrap;}
+  .sec .motif .spec .t2 .ar{padding:0 5px;}
+  .sec .head{position:relative;z-index:5;}
+  .sec h2{font-family:var(--pd-display);font-weight:800;font-size:60px;line-height:1.0;letter-spacing:-.022em;color:var(--pd-ink);margin:26px 0 0;}
+  .sec .rdash{margin:26px 0 26px;}
+  .sec .lead{font-size:19px;line-height:1.6;color:var(--pd-ink-2);margin:0;max-width:620px;}
+
+  /* left-edge tick motif */
+  .ticks{position:absolute;left:30px;top:120px;display:flex;flex-direction:column;gap:54px;z-index:1;}
+  .ticks i{width:9px;height:9px;border:1.5px solid var(--pd-red);border-radius:50%;display:block;}
+  .ticks i:nth-child(2){background:var(--pd-red);}
+
+  /* fact / service card grid */
+  .cardgrid{position:relative;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:54px;}
+  .card{border-radius:var(--pd-r-lg);padding:30px 32px;display:flex;align-items:center;gap:26px;min-height:150px;}
+  .card.light{background:#fff;border:1px solid var(--pd-line);box-shadow:var(--pd-shadow-md);}
+  .card.dark{background:var(--pd-dark);position:relative;overflow:hidden;}
+  .card.dark::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.04),transparent 60%);pointer-events:none;}
+  .card .chip{width:84px;height:84px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:var(--pd-red);}
+  .card.light .chip{background:#F1F0ED;}
+  .card.dark .chip{background:var(--pd-dark-2);}
+  .card .chip svg{width:42px;height:42px;}
+  .card .num{font-family:var(--pd-display);font-weight:800;font-size:34px;letter-spacing:-.02em;line-height:1;white-space:nowrap;}
+  .card .num .u{font-size:24px;font-weight:700;}
+  .card.light .num{color:var(--pd-ink);}
+  .card.dark .num{color:#fff;}
+  .card .sub{font-size:15px;line-height:1.4;margin-top:13px;max-width:230px;}
+  .card.light .sub{color:var(--pd-muted);}
+  .card.dark .sub{color:var(--pd-on-dark-mut);}
+  .card .mini-dash{width:34px;height:3px;background:var(--pd-red);border-radius:2px;margin-top:11px;}
+
+  /* service card variant (title instead of number) */
+  .card.svc{align-items:flex-start;padding:30px 32px;}
+  .card.svc .chip{width:78px;height:78px;}
+  .card.svc .title{font-family:var(--pd-display);font-weight:700;font-size:22px;letter-spacing:-.01em;line-height:1.12;}
+  .card.svc.light .title{color:var(--pd-ink);}
+  .card.svc.dark .title{color:#fff;}
+
+  /* ===================================================================
+     SECTION 3 — WAREHOUSE
+     =================================================================== */
+  .wh{position:relative;padding:78px 96px 70px;overflow:hidden;}
+  .wh .grid{display:grid;grid-template-columns:1fr 660px;gap:64px;align-items:start;}
+  .wh h2{font-family:var(--pd-display);font-weight:800;font-size:48px;line-height:1.06;letter-spacing:-.02em;color:var(--pd-ink);margin:22px 0 0;}
+  .wh .lead{font-size:18px;line-height:1.6;color:var(--pd-muted);margin:24px 0 34px;max-width:480px;}
+  .wh .feat{display:flex;flex-direction:column;gap:26px;margin-bottom:38px;}
+  .wh .feat .row{display:flex;gap:18px;align-items:flex-start;}
+  .wh .feat .fi{width:30px;height:30px;color:var(--pd-red);flex:none;margin-top:2px;}
+  .wh .feat .fi svg{width:28px;height:28px;}
+  .wh .feat .ft{font-size:17px;font-weight:700;color:var(--pd-ink);margin:0 0 4px;}
+  .wh .feat .fd{font-size:14.5px;color:var(--pd-muted);margin:0;line-height:1.4;}
+  /* warehouse photo + strip */
+  .wh .pic{position:relative;border-radius:var(--pd-r-lg);overflow:hidden;box-shadow:var(--pd-shadow-lg);}
+  .wh .pic img{width:100%;height:430px;object-fit:cover;}
+  .wh .strip{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:linear-gradient(180deg,rgba(20,21,26,.0),rgba(20,21,26,.86) 38%);padding-top:54px;}
+  .wh .strip .cell{padding:18px 14px 22px;text-align:center;color:#fff;position:relative;}
+  .wh .strip .cell+.cell::before{content:"";position:absolute;left:0;top:22px;bottom:18px;width:1px;background:rgba(255,255,255,.16);}
+  .wh .strip .ci{width:30px;height:30px;margin:0 auto 12px;color:#fff;}
+  .wh .strip .ci svg{width:30px;height:30px;stroke-width:1.6;}
+  .wh .strip .cn{font-family:var(--pd-display);font-weight:800;font-size:24px;letter-spacing:-.01em;}
+  .wh .strip .cc{font-size:12.5px;color:var(--pd-on-dark-mut);margin-top:6px;line-height:1.3;}
+  /* process panel */
+  .wh .proc{margin-top:48px;background:#EEEDEB;border:1px solid var(--pd-line);border-radius:var(--pd-r-xl);padding:40px 44px 46px;}
+  .wh .proc h3{font-family:var(--pd-display);font-weight:700;font-size:24px;line-height:1.12;color:var(--pd-ink);margin:0 0 30px;}
+  .wh .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .wh .step{position:relative;}
+  .wh .step .th{border-radius:14px;overflow:hidden;box-shadow:var(--pd-shadow-md);}
+  .wh .step .th img{width:100%;height:118px;object-fit:cover;}
+  .wh .step .ar{position:absolute;top:52px;right:-15px;color:var(--pd-red);z-index:3;}
+  .wh .step .ar svg{width:22px;height:22px;}
+  .wh .step .n{font-family:var(--pd-display);font-weight:800;font-size:24px;color:var(--pd-red);margin:18px 0 8px;letter-spacing:-.01em;}
+  .wh .step .st{font-size:16px;font-weight:700;color:var(--pd-ink);margin:0 0 8px;}
+  .wh .step .sd{font-size:13.5px;color:var(--pd-muted);line-height:1.4;margin:0;}
+
+  /* ===================================================================
+     SECTION 4 — SERVICES bottom bar
+     =================================================================== */
+  .routebar{position:relative;z-index:5;margin-top:26px;background:#fff;border:1px solid var(--pd-line);border-radius:var(--pd-r-lg);box-shadow:var(--pd-shadow-sm);display:flex;align-items:center;justify-content:space-between;padding:24px 34px;}
+  .routebar .l{display:flex;align-items:center;gap:18px;}
+  .routebar .pin{width:30px;height:30px;color:var(--pd-red);}
+  .routebar .pin svg{width:28px;height:28px;}
+  .routebar .rt{font-size:18px;color:var(--pd-ink);font-weight:600;}
+  .routebar .rt b{color:var(--pd-red);font-weight:800;}
+  .routebar .rt .ar{color:var(--pd-red);padding:0 6px;font-weight:800;}
+  .routebar .rt .city{color:var(--pd-ink-2);font-weight:500;}
+  .routebar .r{display:flex;align-items:center;gap:14px;color:var(--pd-muted);font-size:16px;}
+  .routebar .r .cal{width:26px;height:26px;color:var(--pd-red);}
+  .routebar .r .cal svg{width:24px;height:24px;}
+
+  /* faint bottom dashes motif */
+  .botmotif{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;z-index:1;}
+  .botmotif span{height:4px;border-radius:2px;background:var(--pd-red);opacity:.85;}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div id="stage">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="nav" data-screen-label="Header">
+    <img class="logo" src="assets/pandao-logo.png" alt="PanDao Logistics Company">
+    <nav class="menu">
+      <a href="#">Услуги</a>
+      <a href="#">Маршруты</a>
+      <a href="#">О компании</a>
+      <a href="#">Контакты</a>
+    </nav>
+    <button class="btn primary">Рассчитать доставку</button>
+  </header>
+
+  <!-- ===================== 1 · HERO ===================== -->
+  <section class="hero" data-screen-label="Hero">
+    <div class="photo">
+      <img src="assets/hero-port-clean.jpg" alt="Контейнерный порт — отгрузка из Китая">
+
+      <!-- dashed curve + radar ping (rebuilt) -->
+      <svg class="ph-svg" viewBox="0 0 882 656" fill="none" preserveAspectRatio="none">
+        <path d="M852 168 C 854 232, 792 248, 800 300 C 805 332, 792 340, 790 360" stroke="#ffffff" stroke-width="2" stroke-dasharray="1.5 7" stroke-linecap="round" opacity=".9"/>
+        <circle cx="790" cy="372" r="24" stroke="#ffffff" stroke-width="1.4" opacity=".22"/>
+        <circle cx="790" cy="372" r="14" stroke="#DE2931" stroke-width="1.6" opacity=".55"/>
+        <circle cx="790" cy="372" r="6" fill="#DE2931"/>
+      </svg>
+
+      <!-- status chip (rebuilt) -->
+      <div class="hchip">
+        <span class="ic"><i data-lucide="warehouse"></i></span>
+        <div>
+          <div class="t">Груз принят на складе</div>
+          <div class="s">Проверяем, маркируем<br>и готовим к отправке</div>
+        </div>
+        <span class="bar"><span></span></span>
+      </div>
+
+      <!-- destination labels (rebuilt) -->
+      <div class="hcities">
+        <span class="hcity">ГРОЗНЫЙ <i></i></span>
+        <span class="hcity">ПЯТИГОРСК <i></i></span>
+        <span class="hcity">МАХАЧКАЛА <i></i></span>
+        <span class="hcity">МИНЕРАЛЬНЫЕ ВОДЫ <i></i></span>
+      </div>
+
+      <!-- route tracker panel (rebuilt) -->
+      <div class="hpanel">
+        <div class="h">Маршрут: <span class="r">Китай</span> <span class="ar">→</span> Северный Кавказ</div>
+        <div class="sub">Грозный&nbsp;·&nbsp;Пятигорск&nbsp;·&nbsp;Махачкала&nbsp;·&nbsp;Минеральные Воды</div>
+        <div class="track">
+          <div class="line"><span class="fill"></span></div>
+          <span class="mid r" style="left:25%"></span>
+          <span class="mid" style="left:50%"></span>
+          <span class="mid" style="left:75%"></span>
+          <div class="step active"><span class="d"><i data-lucide="warehouse"></i></span><i>Склад в Китае</i></div>
+          <div class="step"><span class="d"><i data-lucide="truck"></i></span><i>Транспортировка</i></div>
+          <div class="step"><span class="d"><i data-lucide="package"></i></span><i>Таможня</i></div>
+          <div class="step"><span class="d"><i data-lucide="check"></i></span><i>Доставка</i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coords">43.2389° N<br>45.7560° E</div>
+    <div class="cross"></div>
+
+    <div class="left">
+      <span class="eyebrow">Китай&nbsp;&nbsp;→&nbsp;&nbsp;Россия / СНГ / Северный Кавказ</span>
+      <h1>Доставка из Китая<br>на Северный Кавказ</h1>
+      <div class="rdash"></div>
+      <p class="lead">PanDao Logistics специализируется на доставке грузов
+        из любого города Китая на Северный Кавказ.
+        Ключевые направления: <b>Грозный, Пятигорск,<br>Махачкала, Минеральные Воды.</b></p>
+      <p class="lead2">Работаем с рынками России и СНГ,<br>но особенно глубоко специализируемся на этих маршрутах.</p>
+      <div class="cta">
+        <button class="btn primary">Рассчитать доставку <i data-lucide="arrow-right"></i></button>
+        <button class="btn secondary">Посмотреть услуги <i data-lucide="arrow-right"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- stat bar -->
+  <div class="statbar">
+    <div class="stat-i">
+      <span class="si-ic"><i data-lucide="users"></i></span>
+      <div><div class="num">1 200+ клиентов</div><div class="cap">доверили нам свои грузы</div></div>
+    </div>
+    <div class="stat-i">
+      <span class="si-ic">__ICON_CONTAINER__</span>
+      <div><div class="num">1 275 000+ кг</div><div class="cap">успешно доставлено</div></div>
+    </div>
+    <div class="stat-i">
+      <span class="si-ic"><i data-lucide="warehouse"></i></span>
+      <div><div class="num">Склад в Китае</div><div class="cap">принимаем, проверяем, маркируем</div></div>
+    </div>
+    <div class="stat-i">
+      <span class="si-ic">__ICON_KG__</span>
+      <div><div class="num">От 100 кг</div><div class="cap">работаем с бизнесом и оптом</div></div>
+    </div>
+  </div>
+
+  <!-- ===================== 2 · FACTS ===================== -->
+  <section class="sec" data-screen-label="Facts">
+    <div class="motif">
+      <div class="mphoto"><img src="assets/cont_a.jpg" alt=""></div>
+      <svg class="mmap" viewBox="0 0 760 430" fill="none">
+        <g stroke="#D2CFC9" stroke-width="1.1" opacity=".9" fill="none" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M150 112 C 230 74, 360 72, 432 96 C 512 80, 602 112, 612 172 C 662 202, 650 282, 588 302 C 560 360, 460 372, 380 350 C 300 366, 202 350, 172 300 C 112 280, 110 200, 150 160 Z"/>
+          <path d="M232 96 C 252 162, 222 222, 252 292"/>
+          <path d="M432 96 C 410 172, 452 242, 420 322"/>
+          <path d="M150 202 C 252 212, 362 196, 472 216 C 542 226, 590 220, 612 208"/>
+          <path d="M300 128 C 340 180, 320 252, 360 300"/>
+          <path d="M510 150 C 530 210, 500 250, 540 296"/>
+          <path d="M172 250 C 240 256, 300 250, 360 258"/>
+        </g>
+        <path d="M250 150 C 332 120, 360 232, 470 250 C 540 262, 560 300, 590 322" stroke="#DE2931" stroke-width="1.8" stroke-dasharray="2 7" stroke-linecap="round" opacity=".9"/>
+        <circle cx="250" cy="150" r="13" stroke="#DE2931" stroke-width="1.3" opacity=".35"/>
+        <circle cx="250" cy="150" r="6" fill="#DE2931"/>
+        <circle cx="590" cy="322" r="13" stroke="#DE2931" stroke-width="1.3" opacity=".35"/>
+        <circle cx="590" cy="322" r="6" fill="#DE2931"/>
+      </svg>
+      <div class="spec">
+        <span class="si"><i data-lucide="crosshair"></i></span>
+        <div>
+          <div class="t1">Специализация:</div>
+          <div class="t2">Китай <span class="ar">→</span> Северный Кавказ</div>
+        </div>
+      </div>
+    </div>
+    <div class="ticks"><i></i><i></i><i></i></div>
+
+    <div class="head">
+      <span class="eyebrow">Факты PanDao</span>
+      <h2>Мы говорим не словами,<br>а фактами</h2>
+      <div class="rdash"></div>
+      <p class="lead">Логистика — это не про обещания, что всё всегда будет идеально.<br>
+        Это про контроль, честный расчёт и ответственность,<br>
+        если что-то пошло не по плану.</p>
+    </div>
+
+    <div class="cardgrid">
+      <div class="card light">
+        <div class="chip">__ICON_CONTAINER__</div>
+        <div><div class="num">1 275 000+ <span class="u">кг</span></div><div class="mini-dash"></div><div class="sub">успешно доставленных товаров</div></div>
+      </div>
+      <div class="card dark">
+        <div class="chip"><i data-lucide="users"></i></div>
+        <div><div class="num">1 200+ <span class="u">клиентов</span></div><div class="mini-dash"></div><div class="sub">доверили нам свои грузы</div></div>
+      </div>
+      <div class="card light">
+        <div class="chip"><i data-lucide="shield"></i></div>
+        <div><div class="num">600 <span class="u">кг</span></div><div class="mini-dash"></div><div class="sub">утерянного груза полностью возместили клиентам</div></div>
+      </div>
+      <div class="card dark">
+        <div class="chip">__ICON_BOXSHIELD__</div>
+        <div><div class="num">1000+ <span class="u">товаров</span></div><div class="mini-dash"></div><div class="sub">повреждено в дороге — ущерб закрыли за свой счёт</div></div>
+      </div>
+      <div class="card light">
+        <div class="chip">__ICON_KG__</div>
+        <div><div class="num">100 <span class="u">кг+</span></div><div class="mini-dash"></div><div class="sub">минимальный вес груза для работы</div></div>
+      </div>
+      <div class="card light">
+        <div class="chip"><i data-lucide="boxes"></i></div>
+        <div><div class="num">5 <span class="u">тонн+</span></div><div class="mini-dash"></div><div class="sub">индивидуальные условия для крупных партий</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3 · WAREHOUSE ===================== -->
+  <section class="wh" data-screen-label="Warehouse">
+    <div class="ticks"><i></i><i></i><i></i></div>
+    <div class="grid">
+      <div>
+        <span class="eyebrow">Наш склад и контроль</span>
+        <h2>Принимаем, проверяем<br>и готовим ваш груз<br>в Китае</h2>
+        <p class="lead">Собственный склад в Китае — это контроль качества,
+          безопасное хранение и полная готовность груза
+          к отправке на Северный Кавказ.</p>
+        <div class="feat">
+          <div class="row"><span class="fi"><i data-lucide="building-2"></i></span>
+            <div><p class="ft">Собственный склад в Китае</p><p class="fd">Принимаем товар из любого города Китая</p></div></div>
+          <div class="row"><span class="fi"><i data-lucide="search"></i></span>
+            <div><p class="ft">Проверка и фотоотчёт</p><p class="fd">Проверяем качество и соответствие заказа</p></div></div>
+          <div class="row"><span class="fi"><i data-lucide="package"></i></span>
+            <div><p class="ft">Упаковка и маркировка</p><p class="fd">Надёжно упакуем и промаркируем груз</p></div></div>
+          <div class="row"><span class="fi"><i data-lucide="shield"></i></span>
+            <div><p class="ft">Страхование и безопасность</p><p class="fd">Ваш груз застрахован и под нашей ответственностью</p></div></div>
+        </div>
+        <button class="btn primary">Узнать подробнее</button>
+      </div>
+
+      <div class="pic">
+        <img src="assets/warehouse.jpg" alt="Склад PanDao в Китае">
+        <div class="strip">
+          <div class="cell"><div class="ci"><i data-lucide="warehouse"></i></div><div class="cn">3 000+ м²</div><div class="cc">площадь склада<br>в Китае</div></div>
+          <div class="cell"><div class="ci"><i data-lucide="cctv"></i></div><div class="cn">24/7</div><div class="cc">видеонаблюдение<br>и контроль</div></div>
+          <div class="cell"><div class="ci"><i data-lucide="users"></i></div><div class="cn">100%</div><div class="cc">проверка каждого<br>груза</div></div>
+          <div class="cell"><div class="ci"><i data-lucide="shield-check"></i></div><div class="cn">0</div><div class="cc">потерянных грузов<br>за 5 лет работы</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="proc">
+      <h3>Так выглядит<br>процесс на складе</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="th"><img src="assets/step1.jpg" alt=""></div>
+          <div class="ar"><i data-lucide="arrow-right"></i></div>
+          <div class="n">01</div><p class="st">Приём груза</p><p class="sd">Принимаем товар от поставщика из любого города Китая</p>
+        </div>
+        <div class="step">
+          <div class="th"><img src="assets/step2.jpg" alt=""></div>
+          <div class="ar"><i data-lucide="arrow-right"></i></div>
+          <div class="n">02</div><p class="st">Проверка</p><p class="sd">Проверяем качество и соответствие вашего заказа</p>
+        </div>
+        <div class="step">
+          <div class="th"><img src="assets/step3.jpg" alt=""></div>
+          <div class="ar"><i data-lucide="arrow-right"></i></div>
+          <div class="n">03</div><p class="st">Упаковка и маркировка</p><p class="sd">Надёжно упакуем и промаркируем каждую единицу</p>
+        </div>
+        <div class="step">
+          <div class="th"><img src="assets/step4.jpg" alt=""></div>
+          <div class="ar"><i data-lucide="arrow-right"></i></div>
+          <div class="n">04</div><p class="st">Хранение</p><p class="sd">Бережное хранение до отправки без лишних рисков</p>
+        </div>
+        <div class="step">
+          <div class="th"><img src="assets/step5.jpg" alt=""></div>
+          <div class="n">05</div><p class="st">Отправка</p><p class="sd">Формируем оптимальный маршрут и отправляем на Северный Кавказ</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 4 · SERVICES ===================== -->
+  <section class="sec" data-screen-label="Services">
+    <div class="motif">
+      <div class="mphoto"><img src="assets/cont_a.jpg" alt=""></div>
+      <svg class="mmap" viewBox="0 0 760 430" fill="none">
+        <g stroke="#D2CFC9" stroke-width="1.1" opacity=".9" fill="none" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M150 112 C 230 74, 360 72, 432 96 C 512 80, 602 112, 612 172 C 662 202, 650 282, 588 302 C 560 360, 460 372, 380 350 C 300 366, 202 350, 172 300 C 112 280, 110 200, 150 160 Z"/>
+          <path d="M232 96 C 252 162, 222 222, 252 292"/>
+          <path d="M432 96 C 410 172, 452 242, 420 322"/>
+          <path d="M150 202 C 252 212, 362 196, 472 216 C 542 226, 590 220, 612 208"/>
+          <path d="M300 128 C 340 180, 320 252, 360 300"/>
+          <path d="M510 150 C 530 210, 500 250, 540 296"/>
+          <path d="M172 250 C 240 256, 300 250, 360 258"/>
+        </g>
+        <path d="M250 150 C 332 120, 360 232, 470 250 C 540 262, 560 300, 590 322" stroke="#DE2931" stroke-width="1.8" stroke-dasharray="2 7" stroke-linecap="round" opacity=".9"/>
+        <circle cx="250" cy="150" r="13" stroke="#DE2931" stroke-width="1.3" opacity=".35"/>
+        <circle cx="250" cy="150" r="6" fill="#DE2931"/>
+        <circle cx="590" cy="322" r="13" stroke="#DE2931" stroke-width="1.3" opacity=".35"/>
+        <circle cx="590" cy="322" r="6" fill="#DE2931"/>
+      </svg>
+      <div class="spec">
+        <span class="si"><i data-lucide="crosshair"></i></span>
+        <div>
+          <div class="t1">Специализация:</div>
+          <div class="t2">Китай <span class="ar">→</span> Северный Кавказ</div>
+        </div>
+      </div>
+    </div>
+    <div class="ticks"><i></i><i></i><i></i></div>
+
+    <div class="head">
+      <span class="eyebrow">Услуги PanDao</span>
+      <h2>Наши услуги</h2>
+      <div class="rdash"></div>
+      <p class="lead">Мы не просто передаём груз дальше. Мы строим маршрут,<br>
+        контролируем склад, упаковку, документы и доводим<br>
+        поставку до результата.</p>
+    </div>
+
+    <div class="cardgrid">
+      <div class="card svc light">
+        <div class="chip"><i data-lucide="package"></i></div>
+        <div><div class="title">Доставка под ключ</div><div class="mini-dash"></div><div class="sub">От приёмки груза в Китае до доставки на Северный Кавказ.</div></div>
+      </div>
+      <div class="card svc dark">
+        <div class="chip">__ICON_CONTAINER__</div>
+        <div><div class="title">Контейнерные<br>перевозки</div><div class="mini-dash"></div><div class="sub">Подбираем маршрут под задачу: дешевле, быстрее или надёжнее.</div></div>
+      </div>
+      <div class="card svc light">
+        <div class="chip"><i data-lucide="boxes"></i></div>
+        <div><div class="title">Сборные грузы</div><div class="mini-dash"></div><div class="sub">Объединяем грузы клиентов, чтобы снизить стоимость перевозки.</div></div>
+      </div>
+      <div class="card svc dark">
+        <div class="chip"><i data-lucide="warehouse"></i></div>
+        <div><div class="title">Склад в Китае</div><div class="mini-dash"></div><div class="sub">Принимаем, проверяем, маркируем и готовим груз к отправке.</div></div>
+      </div>
+      <div class="card svc light">
+        <div class="chip"><i data-lucide="user-round"></i></div>
+        <div><div class="title">Байерские услуги</div><div class="mini-dash"></div><div class="sub">Помогаем найти, проверить и выкупить товар в Китае.</div></div>
+      </div>
+      <div class="card svc dark">
+        <div class="chip"><i data-lucide="users-round"></i></div>
+        <div><div class="title">Сопровождение<br>в Китае</div><div class="mini-dash"></div><div class="sub">Встречаем, переводим, ведём переговоры и помогаем с фабриками.</div></div>
+      </div>
+    </div>
+
+    <div class="routebar">
+      <div class="l">
+        <span class="pin"><i data-lucide="map-pin"></i></span>
+        <span class="rt"><b>Маршруты: Китай</b><span class="ar">→</span><span class="city">Грозный&nbsp; /&nbsp; Пятигорск&nbsp; /&nbsp; Махачкала&nbsp; /&nbsp; Минеральные Воды</span></span>
+      </div>
+      <div class="r"><span class="cal"><i data-lucide="calendar-days"></i></span>Регулярные рейсы и гибкие сроки доставки</div>
+    </div>
+
+    <div class="botmotif">
+      <span style="width:40px;opacity:.25"></span><span style="width:18px;opacity:.5"></span><span style="width:60px"></span><span style="width:14px;opacity:.4"></span>
+    </div>
+  </section>
+
+</div><!--/stage-->
+</div><!--/wrap-->
+
+<!-- custom inline SVG icons (container bars, KG bag, box+shield) -->
+<template id="svg-container">
+  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7" y="13" width="34" height="22" rx="2.5"/>
+    <line x1="14" y1="17.5" x2="14" y2="30.5"/><line x1="20" y1="17.5" x2="20" y2="30.5"/>
+    <line x1="28" y1="17.5" x2="28" y2="30.5"/><line x1="34" y1="17.5" x2="34" y2="30.5"/>
+    <line x1="12" y1="35" x2="12" y2="38"/><line x1="36" y1="35" x2="36" y2="38"/>
+  </svg>
+</template>
+<template id="svg-kg">
+  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 18 H34 L37 39 a2 2 0 0 1 -2 2.3 H13 a2 2 0 0 1 -2 -2.3 Z"/>
+    <path d="M19 18 V15 a5 5 0 0 1 10 0 V18"/>
+    <text x="24" y="35" font-size="11" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Onest,sans-serif">KG</text>
+  </svg>
+</template>
+<template id="svg-boxshield">
+  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 7 L39 13 V25 c0 9 -7 13 -15 16 -8 -3 -15 -7 -15 -16 V13 Z"/>
+    <path d="M9 16 L24 22 L39 16"/><line x1="24" y1="22" x2="24" y2="33"/>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  // inject custom inline SVGs into placeholders
+  function injectCustom(){
+    const map={'__ICON_CONTAINER__':'svg-container','__ICON_KG__':'svg-kg','__ICON_BOXSHIELD__':'svg-boxshield'};
+    document.querySelectorAll('.si-ic, .chip').forEach(function(el){
+      const t=el.textContent.trim();
+      if(map[t]){ el.innerHTML=''; el.appendChild(document.getElementById(map[t]).content.cloneNode(true)); }
+    });
+  }
+  injectCustom();
+  if(window.lucide) lucide.createIcons();
+
+  // scale-to-fit width
+  var stage=document.getElementById('stage'), wrap=document.getElementById('wrap');
+  function fit(){
+    var w=wrap.clientWidth||window.innerWidth||document.documentElement.clientWidth||1600;
+    var s=Math.min(1, w/1600);
+    stage.style.transform='scale('+s+')';
+    wrap.style.height=(stage.offsetHeight*s)+'px';
+  }
+  window.addEventListener('resize',fit);
+  window.addEventListener('load',fit);
+  fit();
+  setTimeout(fit,400);
+  setTimeout(fit,1200);
+</script>
+</body>
+</html>
